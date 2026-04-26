@@ -1,0 +1,61 @@
+# ── Secrets & Environment ──────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Python ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+.Python
+venv/
+env/
+.venv/
+dist/
+build/
+*.so
+
+# ── ML Models & Data ───────────────────────────────────
+data/models/*.keras
+data/models/*.h5
+data/models/*.pkl
+data/models/*.joblib
+backend/data/models/*.keras
+backend/data/models/*.h5
+backend/data/models/*.pkl
+backend/data/models/*.joblib
+data/processed/
+data/raw/*.csv
+!data/raw/.gitkeep
+
+# ── Node / Frontend ────────────────────────────────────
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+yarn-error.log
+.npm/
+
+# ── React build output ─────────────────────────────────
+frontend/build/
+build/
+
+# ── macOS ──────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── IDE ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs ───────────────────────────────────────────────
+*.log
+logs/
+
+# ── Docker ─────────────────────────────────────────────
+.dockerignore

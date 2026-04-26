@@ -1,0 +1,17 @@
+{
+  "name": "trademind-ai-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"cyan,green\" \"bash scripts/start_backend.sh\" \"npm run frontend\"",
+    "frontend": "cd frontend && npm start",
+    "setup": "bash scripts/setup.sh",
+    "train:sample": "python3 scripts/generate_sample_data.py && bash -c 'cd backend && source venv/bin/activate && python app/ml/training/train_prediction.py --csv ../data/raw/sample_stock.csv --symbol SAMPLE --model lstm && python app/ml/training/train_patterns.py --csv ../data/raw/sample_stock.csv'"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "mongodb": "^7.2.0"
+  }
+}

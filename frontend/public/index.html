@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TradeMind AI — Smart Trading Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script>
+      // Apply saved theme before React loads — prevents flash
+      try {
+        var t = localStorage.getItem("tm-theme");
+        if (t === "light") document.documentElement.classList.remove("dark");
+        else document.documentElement.classList.add("dark");
+      } catch(e) {}
+    </script>
+    <style>
+      /* Prevent flash of unstyled content */
+      body { margin: 0; background: #0d0d0d; }
+      html.light body, :root:not(.dark) body { background: #ffffff; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
