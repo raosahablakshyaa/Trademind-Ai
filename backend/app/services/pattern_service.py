@@ -1,14 +1,22 @@
 import os
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from app.core.config import settings
+
+try:
+    import tensorflow as tf
+    TF_AVAILABLE = True
+except ImportError:
+    TF_AVAILABLE = False
+    tf = None
 
 PATTERN_NAMES = ["Doji", "Hammer", "BullishEngulfing", "BearishEngulfing", "MorningStar", "EveningStar"]
 WINDOW = 5
 _cnn_model = None
 
 def _load_cnn():
+    if not TF_AVAILABLE:
+        return None
     global _cnn_model
     if _cnn_model is None:
         path = os.path.join(settings.MODEL_PATH, "cnn_patterns.keras")
@@ -25,12 +33,11 @@ def detect_patterns(df: pd.DataFrame) -> dict:
     if len(ohlc) < WINDOW:
         return {"patterns": [], "dominant_pattern": None}
 
-    window = ohlc[-WINDOW:]
-    normalized = (window - window.mean(axis=0)) / (window.std(axis=0) + 1e-9)
-    X = normalized.reshape(1, WINDOW, 4)
-
     model = _load_cnn()
     if model:
+        window = ohlc[-WINDOW:]
+        normalized = (window - window.mean(axis=0)) / (window.std(axis=0) + 1e-9)
+        X = normalized.reshape(1, WINDOW, 4)
         probs = model.predict(X, verbose=0)[0]
         top_idx = int(np.argmax(probs))
         patterns = [
@@ -40,7 +47,6 @@ def detect_patterns(df: pd.DataFrame) -> dict:
         patterns.sort(key=lambda x: x["probability"], reverse=True)
         dominant = PATTERN_NAMES[top_idx] if probs[top_idx] > 0.4 else None
     else:
-        # Rule-based fallback
         patterns, dominant = _rule_based_patterns(ohlc)
 
     return {"patterns": patterns, "dominant_pattern": dominant}
