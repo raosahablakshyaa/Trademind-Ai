@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import api from "../../utils/api";
+import api, { getErrorMsg } from "../../utils/api";
 import useAuthStore from "../../store/authStore";
 
 export default function AuthGate({ feature }) {
@@ -28,7 +28,7 @@ export default function AuthGate({ feature }) {
       toast.success(`Welcome, ${res.data.name}!`);
       navigate(0);
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Authentication failed");
+      toast.error(getErrorMsg(err, "Authentication failed"));
     } finally {
       setLoading(false);
     }

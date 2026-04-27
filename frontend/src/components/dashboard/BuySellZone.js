@@ -63,9 +63,9 @@ export default function BuySellZone({ symbol, quote }) {
   if (!quote?.price) return null;
   if (loading) return (
     <div className="card animate-pulse">
-      <div className="h-4 w-40 bg-[#1a1a1a] rounded mb-3" />
+      <div className="h-4 w-40 rounded mb-3" style={{ background: "var(--bg3)" }} />
       <div className="grid grid-cols-3 gap-3">
-        {[...Array(6)].map((_, i) => <div key={i} className="h-16 bg-[#1a1a1a] rounded-xl" />)}
+        {[...Array(6)].map((_, i) => <div key={i} className="h-16 rounded-xl" style={{ background: "var(--bg3)" }} />)}
       </div>
     </div>
   );
@@ -79,31 +79,34 @@ export default function BuySellZone({ symbol, quote }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-white">Buy / Sell Zones — {symbol}</h3>
+          <h3 className="font-bold t1">Buy / Sell Zones — {symbol}</h3>
           <p className="muted text-xs mt-0.5">Based on pivot levels · Support & Resistance · Trend</p>
         </div>
-        <div className={`px-3 py-1.5 rounded-xl text-sm font-black border ${
-          isBuy  ? "bg-emerald-950/60 text-emerald-400 border-emerald-900/50" :
-          isSell ? "bg-red-950/60 text-red-400 border-red-900/50" :
-                   "bg-[#1a1a1a] text-gray-400 border-[#2a2a2a]"
-        }`}>
+        <div
+          className="px-3 py-1.5 rounded-xl text-sm font-black"
+          style={{
+            background: isBuy  ? "rgba(22,163,74,0.08)"  : isSell ? "rgba(220,38,38,0.08)"  : "var(--bg3)",
+            color:      isBuy  ? "#16a34a"                : isSell ? "#dc2626"                : "var(--muted)",
+            border:     `1px solid ${isBuy ? "rgba(22,163,74,0.25)" : isSell ? "rgba(220,38,38,0.25)" : "var(--border)"}`,
+          }}
+        >
           {zones.signal} · {zones.trend}
         </div>
       </div>
 
       {/* Key levels bar */}
-      <div className="relative h-10 bg-[#0a0a0a] rounded-xl border border-[#1f1f1f] overflow-hidden">
+      <div className="relative h-10 rounded-xl overflow-hidden" style={{ background: "var(--bg3)", border: "1px solid var(--border)" }}>
         <div className="absolute inset-0 flex items-center px-4">
           {[
-            { label: "S2", val: zones.support2,    color: "text-red-500" },
-            { label: "S1", val: zones.support1,    color: "text-red-400" },
-            { label: "P",  val: zones.pivot,        color: "text-gray-400" },
-            { label: "R1", val: zones.resistance1,  color: "text-emerald-400" },
-            { label: "R2", val: zones.resistance2,  color: "text-emerald-500" },
+            { label: "S2", val: zones.support2,    color: "down" },
+            { label: "S1", val: zones.support1,    color: "down" },
+            { label: "P",  val: zones.pivot,        color: "muted" },
+            { label: "R1", val: zones.resistance1,  color: "up" },
+            { label: "R2", val: zones.resistance2,  color: "up" },
           ].map(({ label, val, color }) => (
             <div key={label} className="flex-1 text-center">
               <p className={`text-[10px] font-bold ${color}`}>{label}</p>
-              <p className="text-white text-[10px] font-mono">{fmt(val)}</p>
+              <p className="t1 text-[10px] font-mono">{fmt(val)}</p>
             </div>
           ))}
         </div>
@@ -112,52 +115,64 @@ export default function BuySellZone({ symbol, quote }) {
       {/* Buy zone + Sell zone */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* BUY ZONE */}
-        <div className={`p-4 rounded-xl border ${isBuy ? "border-emerald-900/60 bg-emerald-950/20" : "border-[#1f1f1f] bg-[#0a0a0a]"}`}>
+        <div
+          className="p-4 rounded-xl"
+          style={{
+            background: isBuy ? "rgba(22,163,74,0.06)" : "var(--bg2)",
+            border: `1px solid ${isBuy ? "rgba(22,163,74,0.3)" : "var(--border)"}`,
+          }}
+        >
           <div className="flex items-center gap-2 mb-3">
             <span className="tag-buy">BUY ZONE</span>
-            {isBuy && <span className="text-xs text-emerald-400 font-semibold">← Active Signal</span>}
+            {isBuy && <span className="text-xs font-semibold up">← Active Signal</span>}
           </div>
           <div className="grid grid-cols-2 gap-2">
             {[
-              ["Entry",    zones.buyEntry,   "text-white"],
+              ["Entry",    zones.buyEntry,   "t1"],
               ["Target 1", zones.buyTarget1, "up"],
               ["Target 2", zones.buyTarget2, "up"],
               ["Stop Loss",zones.buyStop,    "down"],
             ].map(([label, val, color]) => (
-              <div key={label} className="bg-[#0a0a0a] rounded-lg p-2 border border-[#1f1f1f]">
+              <div key={label} className="rounded-lg p-2" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
                 <p className="text-[10px] muted">{label}</p>
                 <p className={`text-sm font-bold font-mono ${color}`}>{fmt(val)}</p>
               </div>
             ))}
           </div>
           <p className="text-xs muted mt-2">
-            R/R: <span className="text-white font-semibold">{zones.rr?.toFixed(2)}x</span>
+            R/R: <span className="t1 font-semibold">{zones.rr?.toFixed(2)}x</span>
             &nbsp;·&nbsp;Risk: <span className="down font-semibold">{fmt(Math.abs(zones.buyEntry - zones.buyStop))}</span>
             &nbsp;·&nbsp;Reward: <span className="up font-semibold">{fmt(Math.abs(zones.buyTarget1 - zones.buyEntry))}</span>
           </p>
         </div>
 
         {/* SELL ZONE */}
-        <div className={`p-4 rounded-xl border ${isSell ? "border-red-900/60 bg-red-950/20" : "border-[#1f1f1f] bg-[#0a0a0a]"}`}>
+        <div
+          className="p-4 rounded-xl"
+          style={{
+            background: isSell ? "rgba(220,38,38,0.06)" : "var(--bg2)",
+            border: `1px solid ${isSell ? "rgba(220,38,38,0.3)" : "var(--border)"}`,
+          }}
+        >
           <div className="flex items-center gap-2 mb-3">
             <span className="tag-sell">SELL ZONE</span>
-            {isSell && <span className="text-xs text-red-400 font-semibold">← Active Signal</span>}
+            {isSell && <span className="text-xs font-semibold down">← Active Signal</span>}
           </div>
           <div className="grid grid-cols-2 gap-2">
             {[
-              ["Entry",    zones.sellEntry,   "text-white"],
+              ["Entry",    zones.sellEntry,   "t1"],
               ["Target 1", zones.sellTarget1, "down"],
               ["Target 2", zones.sellTarget2, "down"],
               ["Stop Loss",zones.sellStop,    "up"],
             ].map(([label, val, color]) => (
-              <div key={label} className="bg-[#0a0a0a] rounded-lg p-2 border border-[#1f1f1f]">
+              <div key={label} className="rounded-lg p-2" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
                 <p className="text-[10px] muted">{label}</p>
                 <p className={`text-sm font-bold font-mono ${color}`}>{fmt(val)}</p>
               </div>
             ))}
           </div>
           <p className="text-xs muted mt-2">
-            R/R: <span className="text-white font-semibold">{zones.rr?.toFixed(2)}x</span>
+            R/R: <span className="t1 font-semibold">{zones.rr?.toFixed(2)}x</span>
             &nbsp;·&nbsp;Risk: <span className="down font-semibold">{fmt(Math.abs(zones.sellStop - zones.sellEntry))}</span>
             &nbsp;·&nbsp;Reward: <span className="up font-semibold">{fmt(Math.abs(zones.sellEntry - zones.sellTarget1))}</span>
           </p>

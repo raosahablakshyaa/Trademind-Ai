@@ -3,6 +3,7 @@ import api from "../utils/api";
 import TradingViewChart from "../components/dashboard/TradingViewChart";
 import useLivePrice from "../hooks/useLivePrice";
 import useDemoStore from "../store/demoStore";
+import useFxStore from "../store/fxStore";
 import MarketStatusBadge from "../components/dashboard/MarketStatusBadge";
 
 /* ── Symbol catalogue ── */
@@ -74,7 +75,8 @@ function buildReport(quote, symbol) {
 
   return { signal, trend, strength, pivot, r1, r2, s1, s2, rr: rr.toFixed(2), bullets,
            buyEntry: s1, buyTarget: r1, buyStop: s2,
-           sellEntry: r1, sellTarget: s1, sellStop: r2 };
+           sellEntry: r1, sellTarget: s1, sellStop: r2,
+           probScore: strength };
 }
 
 /* ── Trade Analysis Engine ── */
@@ -410,6 +412,170 @@ function SymbolSelector({ selected, onPick }) {
   );
 }
 
+/* ── Simple Pro Trade Card ── */
+function SimpleTradeCard({ report, quote, selected, fmtInr }) {
+  const [showDetails, setShowDetails] = React.useState(false);
+  if (!report || !quote?.price) return null;
+
+  if (report.aiLoading) {
+    return (
+      <div className="flex items-center justify-center py-8 gap-3">
+        <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
+          style={{ borderColor: "var(--border2)", borderTopColor: "var(--accent)" }} />
+        <p className="text-sm muted">AI analyzing {selected}…</p>
+      </div>
+    );
+  }
+
+  const p   = quote.price;
+  const chg = quote.change_pct || 0;
+  const isBuy  = report.signal === "BUY";
+  const isSell = report.signal === "SELL";
+  const isHold = report.signal === "HOLD";
+
+  const verdict = isBuy
+    ? { label: "✅ BUY",         color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0", sub: "Conditions are favorable. Enter near current price." }
+    : isSell
+    ? { label: "🚫 DON'T BUY",  color: "#dc2626", bg: "#fef2f2", border: "#fecaca", sub: "Bearish setup — avoid buying. Wait for reversal." }
+    : { label: "⏳ WAIT",        color: "#ca8a04", bg: "#fefce8", border: "#fde68a", sub: "No clear edge — stay on sidelines for now." };
+
+  const safeEntry  = p;
+  const safeTarget = Math.max(report.buyTarget || p, p * 1.005);
+  const safeSL     = Math.min(report.buyStop   || p, p * 0.995);
+  const profitPct  = (((safeTarget - safeEntry) / safeEntry) * 100).toFixed(2);
+  const lossPct    = (((safeEntry - safeSL)    / safeEntry) * 100).toFixed(2);
+  const rrRatio    = lossPct > 0 ? (profitPct / lossPct).toFixed(2) : report.rr;
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-xl p-4 flex items-center justify-between gap-4"
+        style={{ background: verdict.bg, border: `1.5px solid ${verdict.border}` }}>
+        <div>
+          <p className="text-2xl font-black" style={{ color: verdict.color }}>{verdict.label}</p>
+          <p className="text-sm mt-0.5 font-medium" style={{ color: verdict.color, opacity: 0.8 }}>{verdict.sub}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-3xl font-black" style={{ color: verdict.color, fontFamily: "'JetBrains Mono', monospace" }}>
+            {report.probScore}%
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: verdict.color, opacity: 0.7 }}>Win Probability</p>
+        </div>
+      </div>
+
+      {isBuy && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl p-3 text-center" style={{ background: "var(--bg2)", border: "1px solid var(--border)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-wide muted mb-1">Entry</p>
+            <p className="text-base font-black t1" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{fmtInr(safeEntry, selected)}</p>
+            <p className="text-[10px] muted mt-0.5">Buy at current price</p>
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+            <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#16a34a" }}>🎯 Target (Sell here)</p>
+            <p className="text-base font-black" style={{ color: "#16a34a", fontFamily: "'JetBrains Mono', monospace" }}>{fmtInr(safeTarget, selected)}</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "#16a34a" }}>+{profitPct}% profit — book here</p>
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: "#fef2f2", border: "1px solid #fecaca" }}>
+            <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#dc2626" }}>🛑 Stop Loss (Exit)</p>
+            <p className="text-base font-black" style={{ color: "#dc2626", fontFamily: "'JetBrains Mono', monospace" }}>{fmtInr(safeSL, selected)}</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "#dc2626" }}>-{lossPct}% — sell immediately if hits</p>
+          </div>
+        </div>
+      )}
+
+      {isBuy && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs px-3 py-1.5 rounded-full font-semibold" style={{ background: "var(--bg3)", color: "var(--muted)" }}>
+            R/R: <span className="t1 font-black">{rrRatio}x</span>
+          </span>
+          <span className="text-xs px-3 py-1.5 rounded-full font-semibold" style={{ background: "var(--bg3)", color: "var(--muted)" }}>
+            Trend: <span className="t1 font-black">{report.trend}</span>
+          </span>
+          <span className="text-xs px-3 py-1.5 rounded-full font-semibold" style={{ background: "var(--bg3)", color: "var(--muted)" }}>
+            {chg >= 0 ? "▲" : "▼"} <span className="t1 font-black">{Math.abs(chg).toFixed(2)}% today</span>
+          </span>
+        </div>
+      )}
+
+      {isSell && (
+        <div className="rounded-xl p-4 space-y-3" style={{ background: "#fef2f2", border: "1px solid #fecaca" }}>
+          <p className="text-sm font-bold" style={{ color: "#dc2626" }}>⚠️ Why not to buy now:</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="text-center rounded-lg p-3" style={{ background: "rgba(255,255,255,0.6)" }}>
+              <p className="text-[10px] font-bold muted uppercase tracking-wide">Current Price</p>
+              <p className="text-base font-black t1 mt-1">{fmtInr(p, selected)}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "#dc2626" }}>Bearish — avoid entry</p>
+            </div>
+            <div className="text-center rounded-lg p-3" style={{ background: "rgba(255,255,255,0.6)" }}>
+              <p className="text-[10px] font-bold muted uppercase tracking-wide">Wait for Support</p>
+              <p className="text-base font-black mt-1" style={{ color: "#16a34a" }}>{fmtInr(report.s1, selected)}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "#16a34a" }}>Buy only if bounces here</p>
+            </div>
+          </div>
+          <p className="text-xs" style={{ color: "#dc2626" }}>
+            Indicators show selling pressure. Wait for price to reach support and show reversal candle.
+          </p>
+        </div>
+      )}
+
+      {isHold && (
+        <div className="rounded-xl p-4" style={{ background: "var(--bg2)", border: "1px solid var(--border)" }}>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="text-center">
+              <p className="text-[10px] muted font-bold uppercase tracking-wide">Resistance</p>
+              <p className="text-sm font-black t1 mt-1">{fmtInr(report.r1, selected)}</p>
+              <p className="text-[10px] muted">Buy if breaks above with volume</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] muted font-bold uppercase tracking-wide">Support</p>
+              <p className="text-sm font-black t1 mt-1">{fmtInr(report.s1, selected)}</p>
+              <p className="text-[10px] muted">Avoid if breaks below</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={() => setShowDetails(v => !v)}
+        className="w-full py-2 rounded-xl text-xs font-semibold transition-all"
+        style={{ background: "var(--bg3)", color: "var(--muted)", border: "1px solid var(--border)" }}
+      >
+        {showDetails ? "▲ Hide Details" : "▼ Show Full Analysis"}
+      </button>
+
+      {showDetails && (
+        <div className="space-y-3 animate-fadeIn">
+          <div className="panel">
+            <p className="text-[10px] font-bold uppercase tracking-widest muted mb-2">Key Levels</p>
+            <div className="grid grid-cols-5 gap-1 text-center">
+              {[
+                { l: "S2", v: report.s2, c: "text-red-500" },
+                { l: "S1", v: report.s1, c: "down" },
+                { l: "Pivot", v: report.pivot, c: "muted" },
+                { l: "R1", v: report.r1, c: "up" },
+                { l: "R2", v: report.r2, c: "text-emerald-600" },
+              ].map(({ l, v, c }) => (
+                <div key={l}>
+                  <p className={`text-[9px] font-bold ${c}`}>{l}</p>
+                  <p className="text-[10px] font-mono t1 mt-0.5">{fmtInr(v, selected)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="panel">
+            <p className="text-[10px] font-bold uppercase tracking-widest muted mb-2">Analysis</p>
+            <div className="space-y-1">
+              {report.bullets.map((b, i) => (
+                <p key={i} className="text-xs t2">› {b}</p>
+              ))}
+            </div>
+          </div>
+          <p className="text-[10px] muted text-center">For educational purposes only · Not financial advice · Always use stop loss</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MarketPage() {
   const [selected, setSelected]   = useState("AAPL");
   const [search, setSearch]       = useState("");
@@ -419,11 +585,43 @@ export default function MarketPage() {
   const [orderQty, setOrderQty]   = useState(1);
   const [orderMsg, setOrderMsg]   = useState(null);
 
+  const { usdInr, toInr, fmtInr, startRefresh, stopRefresh } = useFxStore();
+  useEffect(() => { startRefresh(); return () => stopRefresh(); }, []);
+
   const liveQuote = useLivePrice(selected);
   const quote     = liveQuote || {};
   const isUp      = (quote.change_pct || 0) >= 0;
   const meta      = ALL.find(s => s.symbol === selected) || { name: selected };
-  const report    = buildReport(quote, selected);
+  const baseReport = buildReport(quote, selected);
+
+  // Fetch backend AI signal
+  const [aiSignal, setAiSignal] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  useEffect(() => {
+    if (!quote?.price || !selected) return;
+    setAiSignal(null);
+    setAiLoading(true);
+    const fd = new FormData();
+    fd.append("symbol", selected);
+    fd.append("dl_direction", "UP");
+    fd.append("dl_confidence", 65);
+    api.post("/signals/generate", fd)
+      .then(res => setAiSignal(res.data))
+      .catch(() => {})
+      .finally(() => setAiLoading(false));
+  }, [selected, quote?.price ? Math.round(quote.price) : 0]);
+
+  const report = baseReport ? {
+    ...baseReport,
+    signal:    aiSignal?.signal    || baseReport.signal,
+    probScore: aiSignal?.probability ?? baseReport.probScore,
+    buyEntry:  aiSignal?.trade_plan?.entry     || baseReport.buyEntry,
+    buyTarget: aiSignal?.trade_plan?.target_1  || baseReport.buyTarget,
+    buyStop:   aiSignal?.trade_plan?.stop_loss || baseReport.buyStop,
+    rr:        aiSignal?.trade_plan?.rr_1?.toString() || baseReport.rr,
+    aiLoading,
+  } : null;
   const { buy, sell, account, fetch: fetchDemo } = useDemoStore();
   const portfolio = account?.portfolio || {};
   const holding   = portfolio[selected] || null;
@@ -436,6 +634,8 @@ export default function MarketPage() {
     api.get("/market/watchlist").then(r => setWatchlist(r.data)).catch(()=>{}).finally(()=>setWlLoad(false));
   }, []);
 
+  const pick = (sym) => { setSelected(sym); localStorage.setItem("tm_selected_symbol", sym); };
+
   useEffect(() => {
     if (!search.trim()) { setResults([]); return; }
     const t = setTimeout(async () => {
@@ -443,8 +643,6 @@ export default function MarketPage() {
     }, 250);
     return () => clearTimeout(t);
   }, [search]);
-
-  const pick = (sym) => { setSelected(sym); setSearch(""); setResults([]); };
 
   const flash = (text, ok=true) => { setOrderMsg({text,ok}); setTimeout(()=>setOrderMsg(null),3000); };
 

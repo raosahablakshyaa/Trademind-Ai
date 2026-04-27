@@ -40,24 +40,36 @@ MARKET_HOURS = {
     "TSE":    {"tz": "Asia/Tokyo",       "open": dtime(9, 0),   "close": dtime(15, 30), "days": range(0, 5)},
     "CRYPTO": {"tz": "UTC",             "open": dtime(0, 0),   "close": dtime(23, 59), "days": range(0, 7)},
     "FOREX":  {"tz": "UTC",             "open": dtime(0, 0),   "close": dtime(23, 59), "days": range(0, 5)},
-    "COMEX":  {"tz": "America/New_York", "open": dtime(8, 20),  "close": dtime(13, 30), "days": range(0, 5)},
-    "NYMEX":  {"tz": "America/New_York", "open": dtime(9, 0),   "close": dtime(14, 30), "days": range(0, 5)},
+    # Gold/Silver trade nearly 24h on weekdays (COMEX + Globex)
+    "COMEX":  {"tz": "America/New_York", "open": dtime(6, 0),   "close": dtime(17, 0),  "days": range(0, 5)},
+    # Crude Oil trades nearly 24h on weekdays
+    "NYMEX":  {"tz": "America/New_York", "open": dtime(6, 0),   "close": dtime(17, 0),  "days": range(0, 5)},
+    # Indices — same as their primary exchange
+    "INDEX":  {"tz": "America/New_York", "open": dtime(9, 30),  "close": dtime(16, 0),  "days": range(0, 5)},
 }
 
 def get_exchange(symbol: str) -> str:
     s = symbol.upper()
     if s.endswith("-USD"):  return "CRYPTO"
     if s.endswith("=X"):    return "FOREX"
-    if s.endswith(".NS") or s in ("^NSEI", "^BSESN"): return "NSE"
+    if s.endswith(".NS") or s in ("^NSEI", "^BSESN", "^NSEBANK"): return "NSE"
     if s.endswith(".BO"):   return "BSE"
     if s.endswith(".L"):    return "LSE"
     if s == "^N225":        return "TSE"
-    if s in ("GC=F", "SI=F"): return "COMEX"
-    if s in ("CL=F", "NG=F"): return "NYMEX"
+    if s in ("^GSPC", "^DJI", "^IXIC", "^RUT", "^VIX"): return "INDEX"
+    if s in ("^HSI",):      return "HKEX"
+    if s in ("^FTSE",):     return "LSE"
+    if s in ("^GDAXI", "^FCHI", "^STOXX50E"): return "LSE"  # European — use LSE hours approx
+    if s in ("GC=F", "SI=F", "HG=F", "PL=F", "PA=F"): return "COMEX"
+    if s in ("CL=F", "BZ=F", "NG=F"): return "NYMEX"
+    if s in ("ZW=F", "ZC=F", "ZS=F", "KC=F", "CT=F", "SB=F"): return "COMEX"
     return "NASDAQ"
 
 def is_market_open(exchange: str) -> bool:
-    h = MARKET_HOURS.get(exchange, MARKET_HOURS["NASDAQ"])
+    # HKEX not in MARKET_HOURS — fallback to closed
+    h = MARKET_HOURS.get(exchange)
+    if not h:
+        return False
     tz  = pytz.timezone(h["tz"])
     now = datetime.now(tz)
     if now.weekday() not in h["days"]:
@@ -68,16 +80,22 @@ def get_quote(symbol: str) -> dict:
     # Return cached if fresh
     cached = _get_cached(symbol)
     if cached:
+        # Always recompute market_open (time-sensitive, not worth caching)
+        exchange = cached["exchange"]
+        cached = dict(cached)
+        cached["market_open"] = is_market_open(exchange)
         return cached
 
     ticker = yf.Ticker(symbol)
 
-    # Use 1d/5m — much lighter than 2d/1m, still gives current price
+    # Try intraday first, then daily fallback
     hist = ticker.history(period="1d", interval="5m")
-
-    # Fallback to 2d/1d if intraday not available (e.g. closed markets)
+    if hist.empty:
+        hist = ticker.history(period="2d", interval="1m")
     if hist.empty:
         hist = ticker.history(period="5d", interval="1d")
+    if hist.empty:
+        hist = ticker.history(period="1mo", interval="1d")
 
     if hist.empty:
         raise ValueError(f"No data found for symbol: {symbol}")

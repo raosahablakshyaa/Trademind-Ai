@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
-import api from "../utils/api";
+import api, { getErrorMsg } from "../utils/api";
 import useAuthStore from "../store/authStore";
 import AuthGate from "../components/dashboard/AuthGate";
 
@@ -21,10 +21,10 @@ const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="rounded-lg px-3 py-2.5 text-sm" style={{ background: "#fff", border: "1px solid #e2e2e2", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
-      <p className="font-bold capitalize mb-1" style={{ color: "#0a0a0a" }}>{d.strategy}</p>
+    <div className="rounded-lg px-3 py-2.5 text-sm" style={{ background: "var(--bg)", border: "1px solid var(--border)", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+      <p className="font-bold capitalize mb-1 t1">{d.strategy}</p>
       <p style={{ color: d.total_pnl >= 0 ? "#16a34a" : "#dc2626" }}>{fmt(d.total_pnl)} P&L</p>
-      <p style={{ color: "#6b6b6b" }}>{d.win_rate}% win rate</p>
+      <p className="muted">{d.win_rate}% win rate</p>
     </div>
   );
 };
@@ -44,7 +44,7 @@ export default function StrategyPage() {
       const res = await api.get("/strategy/analyze");
       setResult(res.data);
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Analysis failed");
+      toast.error(getErrorMsg(err, "Analysis failed"));
     } finally { setLoading(false); }
   };
 
@@ -71,7 +71,7 @@ export default function StrategyPage() {
 
       {loading && !result && (
         <div className="space-y-4">
-          {[1,2,3].map(i => <div key={i} className="h-24 rounded-xl animate-shimmer" style={{ background: "#f0f0f0" }} />)}
+          {[1,2,3].map(i => <div key={i} className="h-24 rounded-xl animate-shimmer" style={{ background: "var(--bg3)" }} />)}
         </div>
       )}
 
@@ -121,7 +121,7 @@ export default function StrategyPage() {
                       axisLine={false} tickLine={false}
                       tickFormatter={v => `$${v}`}
                     />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f7f7f7" }} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--bg2)" }} />
                     <ReferenceLine y={0} stroke="#e2e2e2" />
                     <Bar dataKey="total_pnl" radius={[6, 6, 0, 0]}>
                       {result.strategies.map((s, i) => (

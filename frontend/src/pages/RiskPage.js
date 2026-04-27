@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
-import api from "../utils/api";
+import api, { getErrorMsg } from "../utils/api";
 
 export default function RiskPage() {
   const [form, setForm] = useState({ entry_price: "", stop_loss: "", target_price: "", capital: "", risk_percent: 1, volatility: "" });
@@ -19,7 +19,7 @@ export default function RiskPage() {
       const res = await api.post("/risk/analyze", payload);
       setResult(res.data);
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Risk analysis failed");
+      toast.error(getErrorMsg(err, "Risk analysis failed"));
     } finally { setLoading(false); }
   };
 

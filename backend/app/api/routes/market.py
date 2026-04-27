@@ -40,8 +40,14 @@ async def search(q: str = Query(..., min_length=1)):
 
 @router.get("/watchlist")
 async def watchlist():
-    """Fetch all watchlist symbols in parallel — much faster."""
-    symbols = ["AAPL", "BTC-USD", "ETH-USD", "EURUSD=X", "^GSPC", "^NSEI", "RELIANCE.NS", "TSLA", "GC=F", "NVDA"]
+    """Fetch watchlist symbols in parallel — includes Indian + US + Crypto."""
+    symbols = [
+        "^NSEI", "^BSESN", "^NSEBANK",          # Indian indices
+        "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS",  # Top NSE stocks
+        "AAPL", "NVDA", "TSLA",                   # US stocks
+        "BTC-USD", "ETH-USD",                     # Crypto
+        "GC=F", "USDINR=X",                       # Gold + USD/INR
+    ]
     results = await asyncio.gather(*[_fetch_quote_async(s) for s in symbols])
     return [r for r in results if r is not None]
 

@@ -1,5 +1,15 @@
 import axios from "axios";
 
+// Safely extract error message from FastAPI responses
+// detail can be a string OR array of Pydantic validation objects
+export const getErrorMsg = (err, fallback = "Something went wrong") => {
+  const detail = err?.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) return detail.map(d => d.msg || JSON.stringify(d)).join(", ");
+  return fallback;
+};
+
 const api = axios.create({ baseURL: "/api" });
 
 api.interceptors.request.use((config) => {

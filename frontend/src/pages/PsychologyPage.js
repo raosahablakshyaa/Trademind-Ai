@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import api from "../utils/api";
+import api, { getErrorMsg } from "../utils/api";
 import useAuthStore from "../store/authStore";
 import AuthGate from "../components/dashboard/AuthGate";
 
@@ -39,7 +39,7 @@ export default function PsychologyPage() {
       const res = await api.get("/psychology/analyze");
       setResult(res.data);
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Analysis failed");
+      toast.error(getErrorMsg(err, "Analysis failed"));
     } finally { setLoading(false); }
   };
 
@@ -68,7 +68,7 @@ export default function PsychologyPage() {
 
       {loading && !result && (
         <div className="space-y-4">
-          {[1,2,3].map(i => <div key={i} className="h-24 rounded-xl animate-shimmer" style={{ background: "#f0f0f0" }} />)}
+          {[1,2,3].map(i => <div key={i} className="h-24 rounded-xl animate-shimmer" style={{ background: "var(--bg3)" }} />)}
         </div>
       )}
 
@@ -197,11 +197,11 @@ export default function PsychologyPage() {
                   )}
 
                   {/* Emotion distribution */}
-                  {Object.keys(result.emotion_distribution).length > 0 && (
+                  {Object.keys(result.emotion_distribution || {}).length > 0 && (
                     <div className="card">
                       <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: "#9a9a9a" }}>Emotion Breakdown</p>
                       <div className="space-y-3">
-                        {Object.entries(result.emotion_distribution)
+                        {Object.entries(result.emotion_distribution || {})
                           .sort((a, b) => b[1] - a[1])
                           .map(([emotion, count]) => {
                             const pct = Math.round(count / result.total_trades * 100);

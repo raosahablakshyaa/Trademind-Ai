@@ -252,12 +252,16 @@ export default function PatternsPage() {
         
         <div className="flex flex-wrap gap-2 mb-8">
           {categories.map(cat => (
-            <button key={cat} onClick={() => setActiveTab(cat)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                activeTab === cat 
-                  ? "bg-white text-black" 
-                  : "bg-[#0a0a0a] border border-[#2a2a2a] text-gray-400 hover:text-white"
-              }`}>
+            <button
+              key={cat}
+              onClick={() => setActiveTab(cat)}
+              className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
+              style={{
+                background: activeTab === cat ? "var(--accent)" : "var(--bg3)",
+                color:      activeTab === cat ? "#fff"          : "var(--muted)",
+                border:     `1px solid ${activeTab === cat ? "var(--accent)" : "var(--border)"}`,
+              }}
+            >
               {cat}
             </button>
           ))}
@@ -267,12 +271,23 @@ export default function PatternsPage() {
       <div className="space-y-12">
         {displayedData.map((category) => (
           <div key={category.category} className="space-y-5">
-            <h2 className="text-xl font-bold t1 border-b border-[#1f1f1f] pb-2">{category.category}</h2>
+            <h2 className="text-xl font-bold t1 pb-2" style={{ borderBottom: "1px solid var(--border)" }}>
+              {category.category}
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {category.items.map((p) => (
-                <div key={p.name} className="card border border-[#1f1f1f] hover:border-[#2a2a2a] transition-all flex flex-col">
+                <div
+                  key={p.name}
+                  className="card transition-all flex flex-col"
+                  style={{ border: "1px solid var(--border)" }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = "var(--border2)"}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}
+                >
                   <div className="flex items-start gap-5 mb-5">
-                    <div className="w-24 h-24 shrink-0 bg-[#0a0a0a] rounded-2xl border border-[#1f1f1f] flex items-center justify-center">
+                    <div
+                      className="w-24 h-24 shrink-0 rounded-2xl flex items-center justify-center"
+                      style={{ background: "var(--bg3)", border: "1px solid var(--border)" }}
+                    >
                       {p.svg}
                     </div>
                     <div>
@@ -292,9 +307,9 @@ export default function PatternsPage() {
                       <h4 className="text-xs font-semibold muted uppercase tracking-wider mb-1">What it is</h4>
                       <p className="text-sm t2 leading-relaxed">{p.desc}</p>
                     </div>
-                    <div className="bg-[#0a0a0a] p-4 rounded-xl border border-[#1f1f1f]">
+                    <div className="rounded-xl p-4" style={{ background: "var(--bg2)", border: "1px solid var(--border)" }}>
                       <h4 className="text-xs font-semibold muted uppercase tracking-wider mb-1">How to Trade it</h4>
-                      <p className="text-sm font-medium text-white leading-relaxed">{p.action}</p>
+                      <p className="text-sm font-medium t1 leading-relaxed">{p.action}</p>
                     </div>
                   </div>
                 </div>

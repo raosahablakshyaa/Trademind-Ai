@@ -6,7 +6,7 @@ from app.core.security import get_current_user
 
 router = APIRouter()
 
-STARTING_BALANCE = 10000.0
+STARTING_BALANCE = 1000000.0  # ₹10,00,000
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -159,7 +159,7 @@ async def demo_sell(body: OrderRequest, user=Depends(get_current_user)):
             "realized_pnl": new_realized_pnl,
         }}
     )
-    return {"ok": True, "balance": new_balance, "portfolio": portfolio, "trade": trade, "pnl": pnl}
+    return {"ok": True, "balance": new_balance, "portfolio": portfolio, "trade": trade, "pnl": pnl, "realized_pnl": new_realized_pnl}
 
 
 @router.post("/reset")
@@ -169,7 +169,7 @@ async def demo_reset(user=Depends(get_current_user)):
     await db.demo_accounts.update_one(
         {"user_id": user_id},
         {"$set": {
-            "balance": STARTING_BALANCE,
+            "balance": STARTING_BALANCE,  # ₹10,00,000
             "portfolio": {},
             "trades": [],
             "realized_pnl": 0.0,

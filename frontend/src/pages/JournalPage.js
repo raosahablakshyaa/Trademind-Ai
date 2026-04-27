@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import api from "../utils/api";
+import api, { getErrorMsg } from "../utils/api";
 import useAuthStore from "../store/authStore";
 import AuthGate from "../components/dashboard/AuthGate";
 
@@ -60,7 +60,7 @@ export default function JournalPage() {
       toast.success("Trade logged successfully");
       setForm(EMPTY); setShowForm(false); fetchTrades();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to save trade");
+      toast.error(getErrorMsg(err, "Failed to save trade"));
     } finally { setLoading(false); }
   };
 
@@ -213,8 +213,8 @@ export default function JournalPage() {
             <button key={val} onClick={() => setFilter(val)}
               className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
               style={{
-                background: filter === val ? "#0a0a0a" : "#f0f0f0",
-                color: filter === val ? "#fff" : "#6b6b6b",
+                background: filter === val ? "var(--accent)" : "var(--bg3)",
+                color:      filter === val ? "#fff"          : "var(--muted)",
               }}
             >
               {label}
@@ -226,13 +226,13 @@ export default function JournalPage() {
       {/* Trade list */}
       {fetching ? (
         <div className="space-y-3">
-          {[1,2,3].map(i => <div key={i} className="h-20 rounded-xl animate-shimmer" style={{ background: "#f0f0f0" }} />)}
+          {[1,2,3].map(i => <div key={i} className="h-20 rounded-xl animate-shimmer" style={{ background: "var(--bg3)" }} />)}
         </div>
       ) : filtered.length === 0 ? (
         <div className="card text-center py-16">
           <p className="text-4xl mb-4">📓</p>
-          <p className="font-semibold text-base" style={{ color: "#0a0a0a" }}>No trades yet</p>
-          <p className="text-sm mt-1" style={{ color: "#9a9a9a" }}>Click "+ Log Trade" to record your first trade</p>
+          <p className="font-semibold text-base t1">No trades yet</p>
+          <p className="text-sm mt-1 muted">Click "+ Log Trade" to record your first trade</p>
         </div>
       ) : (
         <div className="space-y-3">

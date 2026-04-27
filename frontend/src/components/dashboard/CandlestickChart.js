@@ -85,7 +85,7 @@ export default function CandlestickChart({ candles = [], interval, onIntervalCha
             className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
               interval === iv
                 ? "bg-accent text-white"
-                : " text-gray-400 hover:text-white"
+                : "muted hover:t1"
             }`}
           >
             {iv}

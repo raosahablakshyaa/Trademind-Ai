@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import api from "../utils/api";
+import api, { getErrorMsg } from "../utils/api";
 import useAuthStore from "../store/authStore";
 
 export default function LoginPage() {
@@ -33,8 +33,7 @@ export default function LoginPage() {
       toast.success(`Welcome back, ${res.data.name || "trader"}!`);
       navigate("/app");
     } catch (err) {
-      const msg = err.response?.data?.detail || "Something went wrong. Please try again.";
-      toast.error(msg);
+      toast.error(getErrorMsg(err, "Something went wrong. Please try again."));
     } finally {
       setLoading(false);
     }

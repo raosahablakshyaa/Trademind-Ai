@@ -27,7 +27,7 @@ function NavItem({ to, label, icon, collapsed }) {
       to={to}
       end={to === "/app"}
       title={collapsed ? label : undefined}
-      className="flex items-center gap-2.5 px-3 py-2 text-xs transition-all duration-100"
+      className="flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-100"
       style={({ isActive }) => ({
         color: isActive ? "#ffffff" : "#666666",
         background: isActive ? "#1a1a1a" : "transparent",
@@ -37,7 +37,7 @@ function NavItem({ to, label, icon, collapsed }) {
       onMouseEnter={e => { if (!e.currentTarget.dataset.active) e.currentTarget.style.background = "#111111"; e.currentTarget.style.color = "#cccccc"; }}
       onMouseLeave={e => { if (!e.currentTarget.dataset.active) e.currentTarget.style.background = "transparent"; }}
     >
-      <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">{icon}</span>
+      <span className="w-4 h-4 shrink-0 flex items-center justify-center">{icon}</span>
       {!collapsed && <span className="truncate font-medium">{label}</span>}
     </NavLink>
   );
@@ -54,21 +54,21 @@ export default function Layout() {
 
       {/* ── Sidebar — always black ── */}
       <aside
-        className={`${collapsed ? "w-[52px]" : "w-[220px]"} flex flex-col shrink-0 transition-all duration-200`}
+        className={`${collapsed ? "w-[62px]" : "w-[260px]"} flex flex-col shrink-0 transition-all duration-200`}
         style={{ background: "#000000", borderRight: "1px solid #1a1a1a" }}
       >
         {/* Logo */}
         <div
-          className="flex items-center justify-between h-11 px-2 shrink-0"
+          className="flex items-center justify-between h-14 px-3 shrink-0"
           style={{ borderBottom: "1px solid #1a1a1a" }}
         >
           {!collapsed && (
             <Link to="/" className="flex items-center gap-2 min-w-0 ml-1">
               <div
-                className="w-5 h-5 rounded flex items-center justify-center font-black text-[10px] shrink-0"
+                className="w-6 h-6 rounded flex items-center justify-center font-black text-[12px] shrink-0"
                 style={{ background: "#ffffff", color: "#000000" }}
               >T</div>
-              <span className="font-bold text-xs tracking-wide" style={{ color: "#ffffff" }}>TradeMind</span>
+              <span className="font-bold text-sm tracking-wide" style={{ color: "#ffffff" }}>TradeMind</span>
             </Link>
           )}
           <button
@@ -87,7 +87,7 @@ export default function Layout() {
 
           <div className="my-1" style={{ borderTop: "1px solid #1a1a1a" }} />
           {!collapsed && (
-            <p className="text-[10px] font-bold uppercase tracking-widest px-3 pt-3 pb-1" style={{ color: "#444444" }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest px-4 pt-3 pb-1" style={{ color: "#444444" }}>
               AI Tools
             </p>
           )}
@@ -95,7 +95,7 @@ export default function Layout() {
 
           <div className="my-1" style={{ borderTop: "1px solid #1a1a1a" }} />
           {!collapsed && (
-            <p className="text-[10px] font-bold uppercase tracking-widest px-3 pt-3 pb-1" style={{ color: "#444444" }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest px-4 pt-3 pb-1" style={{ color: "#444444" }}>
               Analytics
             </p>
           )}
@@ -108,30 +108,30 @@ export default function Layout() {
             <>
               {!collapsed && (
                 <div className="px-3 py-2">
-                  <p className="text-[10px]" style={{ color: "#444" }}>Signed in as</p>
-                  <p className="text-xs font-semibold truncate" style={{ color: "#ccc" }}>
+                  <p className="text-[11px]" style={{ color: "#444" }}>Signed in as</p>
+                  <p className="text-sm font-semibold truncate" style={{ color: "#ccc" }}>
                     {user?.name?.split("@")[0]}
                   </p>
                 </div>
               )}
               <button
                 onClick={() => { logout(); navigate("/"); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors hover:bg-red-500/10"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-red-500/10"
                 style={{ color: "#ef5350" }}
                 title="Sign Out"
               >
-                <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center"><LogoutIcon /></span>
+                <span className="w-4 h-4 shrink-0 flex items-center justify-center"><LogoutIcon /></span>
                 {!collapsed && <span className="font-medium">Sign out</span>}
               </button>
             </>
           ) : (
             <Link
               to="/login"
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors hover:bg-white/10"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-white/10"
               style={{ color: "#888", textDecoration: "none" }}
               title="Sign In"
             >
-              <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center"><LoginIcon /></span>
+              <span className="w-4 h-4 shrink-0 flex items-center justify-center"><LoginIcon /></span>
               {!collapsed && <span className="font-medium">Sign in</span>}
             </Link>
           )}
