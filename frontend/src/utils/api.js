@@ -1,7 +1,5 @@
 import axios from "axios";
 
-// Safely extract error message from FastAPI responses
-// detail can be a string OR array of Pydantic validation objects
 export const getErrorMsg = (err, fallback = "Something went wrong") => {
   const detail = err?.response?.data?.detail;
   if (!detail) return fallback;
@@ -10,7 +8,10 @@ export const getErrorMsg = (err, fallback = "Something went wrong") => {
   return fallback;
 };
 
-const api = axios.create({ baseURL: "/api" });
+// Use env variable if set, else fallback to backend Vercel URL
+const BASE_URL = process.env.REACT_APP_API_URL || "https://trademind-ai-gsax.vercel.app/api";
+
+const api = axios.create({ baseURL: BASE_URL });
 
 api.interceptors.request.use((config) => {
   try {
