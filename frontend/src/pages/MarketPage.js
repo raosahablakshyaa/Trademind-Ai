@@ -327,52 +327,69 @@ function isMarketOpenFE(exchange) {
   return false;
 }
 
-function SymbolSelector({ selected, onPick }) {
+function SymbolSelector({ selected, onPick, watchlist }) {
   const [activeCat, setActiveCat] = useState("US Stocks");
-  const [statuses, setStatuses]   = useState({});
+  const [search, setSearch]       = useState("");
   const symbols = CATEGORIES[activeCat];
 
-  // Check market status for current category symbols
-  useEffect(() => {
-    symbols.forEach(({ symbol }) => {
-      const exch = getExchangeFE(symbol);
-      setStatuses(s => ({ ...s, [symbol]: isMarketOpenFE(exch) }));
-    });
-  }, [activeCat]);
+  // Build a map of symbol -> market_open from live watchlist data
+  const openMap = {};
+  watchlist.forEach(q => { openMap[q.symbol] = q.market_open; });
+
+  const filtered = search
+    ? symbols.filter(s =>
+        s.symbol.toLowerCase().includes(search.toLowerCase()) ||
+        s.name.toLowerCase().includes(search.toLowerCase())
+      )
+    : symbols;
 
   return (
-    <div
-      className="rounded-lg overflow-hidden"
-      style={{ border: "1px solid var(--border)", background: "var(--bg2)" }}
-    >
-      {/* Category row */}
-      <div
-        className="flex overflow-x-auto"
-        style={{ borderBottom: "1px solid var(--border)", background: "var(--bg3)" }}
-      >
+    <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--border)", background: "var(--bg2)" }}>
+
+      {/* Category tabs + search */}
+      <div className="flex items-center overflow-x-auto" style={{ borderBottom: "1px solid var(--border)", background: "var(--bg3)" }}>
         {Object.keys(CATEGORIES).map((cat) => (
           <button
             key={cat}
-            onClick={() => setActiveCat(cat)}
-            className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold transition-all relative"
+            onClick={() => { setActiveCat(cat); setSearch(""); }}
+            className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold transition-all"
             style={{
               color: activeCat === cat ? "var(--text)" : "var(--muted)",
               borderBottom: activeCat === cat ? "2px solid var(--accent)" : "2px solid transparent",
               background: activeCat === cat ? "var(--bg2)" : "transparent",
             }}
           >
-            <span>{CAT_ICONS[cat]}</span>
-            {cat}
+            <span>{CAT_ICONS[cat]}</span>{cat}
           </button>
         ))}
+        {/* Search input inside tab bar */}
+        <div className="flex items-center gap-2 ml-auto px-3 shrink-0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9a9a9a" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            className="outline-none bg-transparent text-xs"
+            style={{ color: "var(--text)", width: "120px" }}
+            placeholder={`Search ${activeCat}...`}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && (
+            <button onClick={() => setSearch("")} style={{ color: "#9a9a9a", fontSize: "14px", lineHeight: 1 }}>×</button>
+          )}
+        </div>
       </div>
 
       {/* Symbol grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-0">
-        {symbols.map(({ symbol, name }) => {
+        {filtered.length === 0 ? (
+          <div className="col-span-8 py-6 text-center text-xs" style={{ color: "var(--muted)" }}>
+            No results for "{search}"
+          </div>
+        ) : filtered.map(({ symbol, name }) => {
           const isActive = selected === symbol;
-          const exch     = getExchangeFE(symbol);
-          const mktOpen  = isMarketOpenFE(exch);
+          // Use backend market_open if available, else fallback to frontend calc
+          const mktOpen  = symbol in openMap ? openMap[symbol] : isMarketOpenFE(getExchangeFE(symbol));
           return (
             <button
               key={symbol}
@@ -386,24 +403,17 @@ function SymbolSelector({ selected, onPick }) {
               }}
             >
               <div className="flex items-center gap-1.5 w-full">
-                <span
-                  className="text-[11px] font-bold tracking-wide truncate"
-                  style={{ color: isActive ? "var(--accent)" : "var(--text)" }}
-                >
+                <span className="text-[11px] font-bold tracking-wide truncate"
+                  style={{ color: isActive ? "var(--accent)" : "var(--text)" }}>
                   {symbol.replace("=X","").replace("-USD","").replace(".NS","").replace("^","")}
                 </span>
                 <span
                   className="shrink-0 w-1.5 h-1.5 rounded-full ml-auto"
-                  style={{
-                    background: mktOpen ? "#26a69a" : "#ef5350",
-                    animation:  mktOpen ? "pulse2 2s ease-in-out infinite" : "none",
-                  }}
+                  style={{ background: mktOpen ? "#26a69a" : "#9a9a9a", animation: mktOpen ? "pulse2 2s ease-in-out infinite" : "none" }}
                   title={mktOpen ? "Market Open" : "Market Closed"}
                 />
               </div>
-              <span className="text-[10px] mt-0.5 truncate w-full" style={{ color: "var(--muted)" }}>
-                {name}
-              </span>
+              <span className="text-[10px] mt-0.5 truncate w-full" style={{ color: "var(--muted)" }}>{name}</span>
             </button>
           );
         })}
@@ -578,8 +588,6 @@ function SimpleTradeCard({ report, quote, selected, fmtInr }) {
 
 export default function MarketPage() {
   const [selected, setSelected]   = useState("AAPL");
-  const [search, setSearch]       = useState("");
-  const [results, setResults]     = useState([]);
   const [watchlist, setWatchlist] = useState([]);
   const [wlLoad, setWlLoad]       = useState(true);
   const [orderQty, setOrderQty]   = useState(1);
@@ -631,18 +639,13 @@ export default function MarketPage() {
   useEffect(() => { fetchDemo(); }, []);
 
   useEffect(() => {
-    api.get("/market/watchlist").then(r => setWatchlist(r.data)).catch(()=>{}).finally(()=>setWlLoad(false));
+    const fetchWl = () => api.get("/market/watchlist").then(r => setWatchlist(r.data)).catch(()=>{}).finally(()=>setWlLoad(false));
+    fetchWl();
+    const t = setInterval(fetchWl, 30000);
+    return () => clearInterval(t);
   }, []);
 
   const pick = (sym) => { setSelected(sym); localStorage.setItem("tm_selected_symbol", sym); };
-
-  useEffect(() => {
-    if (!search.trim()) { setResults([]); return; }
-    const t = setTimeout(async () => {
-      try { const r = await api.get(`/market/search?q=${encodeURIComponent(search)}`); setResults(r.data); } catch {}
-    }, 250);
-    return () => clearTimeout(t);
-  }, [search]);
 
   const flash = (text, ok=true) => { setOrderMsg({text,ok}); setTimeout(()=>setOrderMsg(null),3000); };
 
@@ -661,34 +664,13 @@ export default function MarketPage() {
     <div className="space-y-4 animate-fadeIn">
 
       {/* ── Top bar ── */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold t1">Live Market</h1>
-          <p className="muted text-xs mt-0.5">Real-time charts · TradingView · Stocks · Crypto · Forex · Indices</p>
-        </div>
-        <div className="relative w-64">
-          <input className="input" placeholder="Search symbol or name…"
-            value={search} onChange={e => setSearch(e.target.value)} />
-          {results.length > 0 && (
-            <div className="absolute top-full mt-1 w-full rounded-xl shadow-2xl z-50 overflow-hidden"
-              style={{ background:"var(--bg2)", border:"1px solid var(--border)" }}>
-              {results.map(r => (
-                <button key={r.symbol} onClick={() => pick(r.symbol)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-[var(--bg3)] transition-colors">
-                  <div>
-                    <p className="text-sm font-semibold t1">{r.symbol}</p>
-                    <p className="text-xs muted">{r.name}</p>
-                  </div>
-                  <span className="text-xs muted border rounded-lg px-2 py-0.5" style={{borderColor:"var(--border)"}}>{r.type}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      <div>
+        <h1 className="text-xl font-bold t1">Live Market</h1>
+        <p className="muted text-xs mt-0.5">Real-time charts · TradingView · Stocks · Crypto · Forex · Indices</p>
       </div>
 
       {/* ── Symbol Selector Panel ── */}
-      <SymbolSelector selected={selected} onPick={pick} />
+      <SymbolSelector selected={selected} onPick={pick} watchlist={watchlist} />
 
       {/* ── Main grid ── */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
@@ -896,34 +878,48 @@ export default function MarketPage() {
           </div>
 
           {/* Market overview */}
-          <div className="card">
-            <h3 className="font-bold t1 text-sm mb-3">Market Overview</h3>
-            {wlLoad ? (
+          <div className="card" style={{ padding: "16px" }}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold t1 text-sm">Market Overview</h3>
+              <span className="text-xs muted">{watchlist.length} symbols</span>
+            </div>
+
+            {watchlist.length === 0 ? (
               <div className="space-y-2">
-                {[...Array(10)].map((_,i)=>(
-                  <div key={i} className="h-11 rounded-xl animate-pulse" style={{background:"var(--bg3)"}} />
+                {[...Array(8)].map((_,i)=>(
+                  <div key={i} className="h-10 rounded-lg animate-shimmer" style={{background:"var(--bg3)"}} />
                 ))}
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0.5" style={{ maxHeight: "460px", overflowY: "auto" }}>
                 {watchlist.map(q => {
                   const up = q.change_pct >= 0;
                   const label = q.symbol.replace("=X","").replace("-USD","").replace(".NS","").replace("^","");
+                  const isActive = selected === q.symbol;
+                  const sig = q.change_pct > 1.5 ? "BUY" : q.change_pct < -1.5 ? "SELL" : q.change_pct > 0.3 ? "BUY" : q.change_pct < -0.3 ? "SELL" : "HOLD";
+                  const sigColor = sig === "BUY" ? "#16a34a" : sig === "SELL" ? "#dc2626" : "#ca8a04";
+                  const sigBg    = sig === "BUY" ? "#f0fdf4"  : sig === "SELL" ? "#fef2f2"  : "#fefce8";
                   return (
                     <button key={q.symbol} onClick={() => pick(q.symbol)}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all hover:bg-[var(--bg3)] ${
-                        selected===q.symbol ? "bg-[var(--bg3)] border" : ""
-                      }`}
-                      style={selected===q.symbol ? {borderColor:"var(--border2)"} : {}}>
-                      <div className="text-left">
-                        <p className="text-xs font-bold t1">{label}</p>
-                        <p className="text-xs font-mono muted">{fmt(q.price)}</p>
+                      className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg transition-all"
+                      style={{
+                        background: isActive ? "#f0f0f0" : "transparent",
+                        borderLeft: isActive ? "2px solid #0a0a0a" : "2px solid transparent",
+                      }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--bg3)"; }}
+                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <div className="text-left min-w-0 flex-1">
+                        <p className="text-xs font-bold t1 truncate">{label}</p>
+                        <p className="text-[10px] font-mono muted">{fmt(q.price)}</p>
                       </div>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
-                        up ? "bg-emerald-500/15 text-emerald-500" : "bg-red-500/15 text-red-500"
-                      }`}>
-                        {up?"+":""}{q.change_pct?.toFixed(2)}%
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                          style={{ background: sigBg, color: sigColor }}>{sig}</span>
+                        <span className={`text-[11px] font-bold ${up ? "text-emerald-600" : "text-red-500"}`}>
+                          {up ? "+" : ""}{q.change_pct?.toFixed(2)}%
+                        </span>
+                      </div>
                     </button>
                   );
                 })}

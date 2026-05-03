@@ -67,6 +67,14 @@ export default function DemoPage() {
     return () => stopRefresh();
   }, [token]);
 
+  // Trigger price poll when portfolio loads
+  const { _pollPrices } = useDemoStore();
+  useEffect(() => {
+    if (account?.portfolio && Object.keys(account.portfolio).length > 0) {
+      _pollPrices();
+    }
+  }, [JSON.stringify(Object.keys(account?.portfolio || {}))]);
+
   const fetchQuote = useCallback(async (sym) => {
     try {
       const res = await api.get(`/market/quote/${encodeURIComponent(sym)}`);
@@ -79,14 +87,14 @@ export default function DemoPage() {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => fetchQuote(symbol), 15000);
     return () => clearInterval(timerRef.current);
-  }, [symbol, fetchQuote]);
+  }, [symbol]); // removed fetchQuote from deps to avoid stale closure
 
   if (!token) return <AuthGate feature="Demo Account" />;
 
   const flash = (text, ok = true) => { setMsg({ text, ok }); setTimeout(() => setMsg(null), 3500); };
 
   // Price in INR for current symbol
-  const priceInr = quote?.price ? toInr(quote.price, symbol) : null;
+  const priceInr = quote?.price ? (toInr(quote.price, symbol) ?? quote.price) : null;
 
   const handleBuy = async () => {
     if (!priceInr) return flash("Waiting for live price…", false);
@@ -145,12 +153,20 @@ export default function DemoPage() {
     );
   }
 
+  // Helper: avg_price ko INR mein convert karo (purane USD-stored prices ke liye)
+  const toInrAvg = (avgPrice, sym) => {
+    if (!avgPrice) return null;
+    if (useFxStore.getState().isInr(sym)) return avgPrice;
+    // Agar price USD range mein hai (< 5000) toh convert karo
+    if (avgPrice < 5000) return avgPrice * usdInr;
+    return avgPrice;
+  };
   const portfolio   = account?.portfolio || {};
   const trades      = account?.trades || [];
   const balance     = account?.balance ?? STARTING_BALANCE;
   const realizedPnl = account?.realized_pnl ?? 0;
   const holding     = portfolio[symbol];
-  const liveForSym  = livePrices[symbol] ?? priceInr; // INR price
+  const liveForSym = livePrices[symbol] ?? priceInr;
   const holdingSyms = Object.keys(portfolio);
 
   const allLoaded = holdingSyms.length === 0 || holdingSyms.every(s => livePrices[s] != null);
@@ -160,13 +176,13 @@ export default function DemoPage() {
     ? holdingSyms.reduce((sum, sym) => {
         const h  = portfolio[sym];
         const lp = livePrices[sym];
-        return lp != null ? sum + (lp - h.avg_price) * h.qty : sum;
+        return lp != null ? sum + (lp - toInrAvg(h.avg_price, sym)) * h.qty : sum;
       }, 0)
     : null;
 
   const portfolioValue = holdingSyms.reduce((sum, sym) => {
     const h  = portfolio[sym];
-    const lp = livePrices[sym] ?? h.avg_price;
+    const lp = livePrices[sym] ?? toInrAvg(h.avg_price, sym);
     return sum + lp * h.qty;
   }, 0);
 
@@ -311,7 +327,7 @@ export default function DemoPage() {
             <div className="panel space-y-1.5 text-sm">
               <p className="text-[10px] muted font-semibold uppercase tracking-wide">Open Position</p>
               {(() => {
-                const avgInr  = holding.avg_price; // stored in INR
+                const avgInr  = toInrAvg(holding.avg_price, symbol);
                 const currInr = liveForSym;
                 const upnl    = currInr != null ? (currInr - avgInr) * holding.qty : null;
                 const upct    = currInr != null ? ((currInr - avgInr) / avgInr) * 100 : null;
@@ -381,17 +397,18 @@ export default function DemoPage() {
                 <tbody>
                   {Object.entries(portfolio).map(([sym, h]) => {
                     const lp      = livePrices[sym]; // INR
-                    const invested = h.avg_price * h.qty;
+                    const avgInr  = toInrAvg(h.avg_price, sym);
+                    const invested = avgInr * h.qty;
                     const mktVal  = lp != null ? lp * h.qty : null;
-                    const upnl    = lp != null ? (lp - h.avg_price) * h.qty : null;
-                    const upct    = lp != null ? ((lp - h.avg_price) / h.avg_price) * 100 : null;
+                    const upnl    = lp != null ? (lp - avgInr) * h.qty : null;
+                    const upct    = lp != null ? ((lp - avgInr) / avgInr) * 100 : null;
                     return (
                       <tr key={sym} onClick={() => setSymbol(sym)}
                         className="cursor-pointer hover:bg-[var(--bg3)] transition-colors"
                         style={{ borderBottom: "1px solid var(--border)" }}>
                         <td className="py-3 font-bold t1">{sym.replace(".NS","")}</td>
                         <td className="py-3 text-right t2">{h.qty}</td>
-                        <td className="py-3 text-right font-mono t2">{fmtRs(h.avg_price)}</td>
+                        <td className="py-3 text-right font-mono t2">{fmtRs(toInrAvg(h.avg_price, sym))}</td>
                         <td className="py-3 text-right font-mono t1 font-semibold">
                           {lp != null ? fmtRs(lp) : <span className="muted animate-pulse text-xs">loading…</span>}
                         </td>

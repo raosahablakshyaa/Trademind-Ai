@@ -42,11 +42,24 @@ async def search(q: str = Query(..., min_length=1)):
 async def watchlist():
     """Fetch watchlist symbols in parallel — includes Indian + US + Crypto."""
     symbols = [
-        "^NSEI", "^BSESN", "^NSEBANK",          # Indian indices
-        "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS",  # Top NSE stocks
-        "AAPL", "NVDA", "TSLA",                   # US stocks
-        "BTC-USD", "ETH-USD",                     # Crypto
-        "GC=F", "USDINR=X",                       # Gold + USD/INR
+        # Indian Indices
+        "^NSEI", "^BSESN", "^NSEBANK",
+        # Nifty 50 top stocks
+        "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS",
+        "WIPRO.NS", "SBIN.NS", "BAJFINANCE.NS", "TATAMOTORS.NS", "ADANIENT.NS",
+        "HCLTECH.NS", "AXISBANK.NS", "KOTAKBANK.NS", "LT.NS", "ITC.NS",
+        "SUNPHARMA.NS", "MARUTI.NS", "TITAN.NS", "BHARTIARTL.NS", "ONGC.NS",
+        # US Stocks
+        "AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "AMZN", "META", "AMD",
+        "JPM", "V", "NFLX", "UBER", "COIN", "PLTR",
+        # Crypto
+        "BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "XRP-USD", "DOGE-USD",
+        # Forex
+        "EURUSD=X", "GBPUSD=X", "USDINR=X", "USDJPY=X",
+        # Commodities
+        "GC=F", "SI=F", "CL=F",
+        # Global Indices
+        "^GSPC", "^DJI", "^IXIC", "^N225",
     ]
     results = await asyncio.gather(*[_fetch_quote_async(s) for s in symbols])
     return [r for r in results if r is not None]

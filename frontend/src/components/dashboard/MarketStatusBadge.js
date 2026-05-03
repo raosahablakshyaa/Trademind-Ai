@@ -59,11 +59,11 @@ export default function MarketStatusBadge({ quote, symbol, size = "sm" }) {
 
   // Frontend time-based calculation — always accurate, no backend cache dependency
   const open  = alwaysOpen ? true : checkMarketOpen(exchange);
-  const label = alwaysOpen ? "24/7" : open ? "Market Open" : "Market Closed";
+  const label = alwaysOpen ? "24/7" : open ? "Market Open" : "Closed";
 
   const style = open
     ? { bg: "rgba(38,166,154,0.12)", color: "#26a69a", border: "rgba(38,166,154,0.3)", dot: "#26a69a" }
-    : { bg: "rgba(239,83,80,0.12)",  color: "#ef5350", border: "rgba(239,83,80,0.3)",  dot: "#ef5350" };
+    : { bg: "#f7f7f7",               color: "#9a9a9a", border: "#e2e2e2",               dot: "#9a9a9a" };
 
   return (
     <span
