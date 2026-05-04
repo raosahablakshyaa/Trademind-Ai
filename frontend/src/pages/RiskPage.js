@@ -36,7 +36,7 @@ export default function RiskPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-3">
-            {[["entry_price","Entry Price ($)"],["stop_loss","Stop Loss ($)"],["target_price","Target Price ($)"],["capital","Total Capital ($)"]].map(([key, label]) => (
+            {[["entry_price","Entry Price (₹)"],["stop_loss","Stop Loss (₹)"],["target_price","Target Price (₹)"],["capital","Total Capital (₹)"]].map(([key, label]) => (
               <div key={key}>
                 <label className="text-xs muted block mb-1">{label}</label>
                 <input type="number" step="0.01" className="input" placeholder="0.00"
@@ -73,12 +73,12 @@ export default function RiskPage() {
               {[
                 ["Risk/Reward",    result.risk_reward_ratio + "x"],
                 ["Position Size",  result.position_size + " shares"],
-                ["Position Value", "$" + result.position_value],
+                ["Position Value", "₹" + result.position_value],
                 ["% of Capital",   result.position_pct_of_capital + "%"],
-                ["Max Loss",       "$" + result.max_loss],
-                ["Max Gain",       "$" + result.max_gain],
+                ["Max Loss",       "₹" + result.max_loss],
+                ["Max Gain",       "₹" + result.max_gain],
                 ["Prob. of Loss",  result.probability_of_loss + "%"],
-                ["Suggested SL",   "$" + result.suggested_stop_loss],
+                ["Suggested SL",   "₹" + result.suggested_stop_loss],
               ].map(([label, value]) => (
                 <div key={label} className="panel">
                   <p className="muted text-xs">{label}</p>

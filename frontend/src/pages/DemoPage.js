@@ -93,25 +93,26 @@ export default function DemoPage() {
 
   const flash = (text, ok = true) => { setMsg({ text, ok }); setTimeout(() => setMsg(null), 3500); };
 
-  // Price in INR for current symbol
-  const priceInr = quote?.price ? (toInr(quote.price, symbol) ?? quote.price) : null;
+  // Raw price from API (always send this to backend — no conversion)
+  const rawPrice = quote?.price ?? null;
 
   const handleBuy = async () => {
-    if (!priceInr) return flash("Waiting for live price…", false);
+    if (!rawPrice) return flash("Waiting for live price…", false);
     setBusy(true);
-    // Always send INR price to backend
-    const res = await buy(symbol, priceInr, Number(qty));
+    const res = await buy(symbol, rawPrice, Number(qty));
     setBusy(false);
-    res.error ? flash(res.error, false) : flash(`✓ Bought ${qty} × ${symbol} @ ${fmtInr(quote.price, symbol)}`);
+    res.error ? flash(res.error, false) : flash(`✓ Bought ${qty} × ${symbol} @ ${fmtInr(rawPrice, symbol)}`);
   };
 
   const handleSell = async () => {
-    if (!priceInr) return flash("Waiting for live price…", false);
+    if (!rawPrice) return flash("Waiting for live price…", false);
     setBusy(true);
-    const res = await sell(symbol, priceInr, Number(qty));
+    const res = await sell(symbol, rawPrice, Number(qty));
     setBusy(false);
     if (res.error) { flash(res.error, false); return; }
-    flash(`✓ Sold ${qty} × ${symbol} @ ${fmtInr(quote.price, symbol)} · P&L: ${res.pnl >= 0 ? "+" : ""}₹${fmtNum(Math.abs(res.pnl))}`);
+    // P&L from backend is in raw currency — convert to INR for display
+    const pnlInr = isInr(symbol) ? res.pnl : res.pnl * usdInr;
+    flash(`✓ Sold ${qty} × ${symbol} @ ${fmtInr(rawPrice, symbol)} · P&L: ${pnlInr >= 0 ? "+" : ""}₹${fmtNum(Math.abs(pnlInr))}`);
   };
 
   const handleReset = async () => {
@@ -132,13 +133,15 @@ export default function DemoPage() {
 
   const sellFromAlert = async (sym) => {
     const h  = account?.portfolio?.[sym];
-    const lp = livePrices[sym]; // already in INR (stored as INR)
+    // livePrices stores raw prices now — use directly
+    const lp = livePrices[sym];
     if (!h || !lp) return;
     setBusy(true);
     const res = await sell(sym, lp, h.qty);
     setBusy(false);
     if (res.error) { flash(res.error, false); return; }
-    flash(`✓ Sold all ${h.qty} × ${sym} · P&L: ${res.pnl >= 0 ? "+" : ""}₹${fmtNum(Math.abs(res.pnl))}`);
+    const pnlInr = useFxStore.getState().isInr(sym) ? res.pnl : res.pnl * usdInr;
+    flash(`✓ Sold all ${h.qty} × ${sym} · P&L: ${pnlInr >= 0 ? "+" : ""}₹${fmtNum(Math.abs(pnlInr))}`);
   };
 
   if (loading && !account) {
@@ -153,42 +156,42 @@ export default function DemoPage() {
     );
   }
 
-  // Helper: avg_price ko INR mein convert karo (purane USD-stored prices ke liye)
+  // avg_price is always raw (same currency as API) — convert to INR for display only
   const toInrAvg = (avgPrice, sym) => {
     if (!avgPrice) return null;
-    if (useFxStore.getState().isInr(sym)) return avgPrice;
-    // Agar price USD range mein hai (< 5000) toh convert karo
-    if (avgPrice < 5000) return avgPrice * usdInr;
-    return avgPrice;
+    return toInr(avgPrice, sym) ?? avgPrice;
   };
   const portfolio   = account?.portfolio || {};
   const trades      = account?.trades || [];
   const balance     = account?.balance ?? STARTING_BALANCE;
   const realizedPnl = account?.realized_pnl ?? 0;
   const holding     = portfolio[symbol];
-  const liveForSym = livePrices[symbol] ?? priceInr;
+  // livePrices stores raw prices — convert to INR for display
+  const liveForSym = livePrices[symbol] != null ? toInr(livePrices[symbol], symbol) : (rawPrice ? toInr(rawPrice, symbol) : null);
   const holdingSyms = Object.keys(portfolio);
 
   const allLoaded = holdingSyms.length === 0 || holdingSyms.every(s => livePrices[s] != null);
 
-  // All prices in livePrices are already INR (stored that way via _pollPrices)
+  // livePrices stores raw prices — convert to INR for P&L calculation
   const unrealizedPnl = allLoaded
     ? holdingSyms.reduce((sum, sym) => {
-        const h  = portfolio[sym];
-        const lp = livePrices[sym];
-        return lp != null ? sum + (lp - toInrAvg(h.avg_price, sym)) * h.qty : sum;
+        const h      = portfolio[sym];
+        const rawLp  = livePrices[sym];
+        if (rawLp == null) return sum;
+        const lpInr  = toInr(rawLp, sym) ?? rawLp;
+        const avgInr = toInrAvg(h.avg_price, sym);
+        return sum + (lpInr - avgInr) * h.qty;
       }, 0)
     : null;
 
   const portfolioValue = holdingSyms.reduce((sum, sym) => {
-    const h  = portfolio[sym];
-    const lp = livePrices[sym] ?? toInrAvg(h.avg_price, sym);
-    return sum + lp * h.qty;
+    const h     = portfolio[sym];
+    const rawLp = livePrices[sym];
+    const lpInr = rawLp != null ? (toInr(rawLp, sym) ?? rawLp) : toInrAvg(h.avg_price, sym);
+    return sum + lpInr * h.qty;
   }, 0);
 
-  const netWorth = balance + portfolioValue;
   const totalPnl = unrealizedPnl != null ? realizedPnl + unrealizedPnl : null;
-  const totalPct = ((netWorth - STARTING_BALANCE) / STARTING_BALANCE) * 100;
 
   // Helper: format INR value (already in INR)
   const fmtRs = (v, d = 2) => {
@@ -223,7 +226,6 @@ export default function DemoPage() {
         {[
           { label: "Cash Balance",    value: fmtRs(balance),                                                          sub: `${fmtNum((balance / STARTING_BALANCE) * 100)}% of capital`, cls: "t1" },
           { label: "Portfolio Value", value: fmtRs(portfolioValue),                                                    sub: `${holdingSyms.length} position${holdingSyms.length !== 1 ? "s" : ""}`, cls: "t1" },
-          { label: "Net Worth",       value: fmtRs(netWorth),                                                          sub: `${totalPct >= 0 ? "+" : ""}${fmtNum(totalPct)}% overall`, cls: netWorth >= STARTING_BALANCE ? "up" : "down" },
           { label: "Realized P&L",    value: `${realizedPnl >= 0 ? "+" : "-"}${fmtRs(Math.abs(realizedPnl))}`,        sub: "From closed trades", cls: realizedPnl >= 0 ? "up" : "down" },
           {
             label: "Unrealized P&L",
@@ -367,10 +369,10 @@ export default function DemoPage() {
           )}
 
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={handleBuy} disabled={!priceInr || busy} className="btn-buy py-3 disabled:opacity-40">
+            <button onClick={handleBuy} disabled={!rawPrice || busy} className="btn-buy py-3 disabled:opacity-40">
               {busy ? "…" : "BUY"}
             </button>
-            <button onClick={handleSell} disabled={!priceInr || !holding || busy} className="btn-sell py-3 disabled:opacity-40">
+            <button onClick={handleSell} disabled={!rawPrice || !holding || busy} className="btn-sell py-3 disabled:opacity-40">
               {busy ? "…" : "SELL"}
             </button>
           </div>
@@ -396,12 +398,13 @@ export default function DemoPage() {
                 </thead>
                 <tbody>
                   {Object.entries(portfolio).map(([sym, h]) => {
-                    const lp      = livePrices[sym]; // INR
+                    const rawLp   = livePrices[sym];
+                    const lpInr   = rawLp != null ? (toInr(rawLp, sym) ?? rawLp) : null;
                     const avgInr  = toInrAvg(h.avg_price, sym);
                     const invested = avgInr * h.qty;
-                    const mktVal  = lp != null ? lp * h.qty : null;
-                    const upnl    = lp != null ? (lp - avgInr) * h.qty : null;
-                    const upct    = lp != null ? ((lp - avgInr) / avgInr) * 100 : null;
+                    const mktVal  = lpInr != null ? lpInr * h.qty : null;
+                    const upnl    = lpInr != null ? (lpInr - avgInr) * h.qty : null;
+                    const upct    = lpInr != null ? ((lpInr - avgInr) / avgInr) * 100 : null;
                     return (
                       <tr key={sym} onClick={() => setSymbol(sym)}
                         className="cursor-pointer hover:bg-[var(--bg3)] transition-colors"
@@ -410,7 +413,7 @@ export default function DemoPage() {
                         <td className="py-3 text-right t2">{h.qty}</td>
                         <td className="py-3 text-right font-mono t2">{fmtRs(toInrAvg(h.avg_price, sym))}</td>
                         <td className="py-3 text-right font-mono t1 font-semibold">
-                          {lp != null ? fmtRs(lp) : <span className="muted animate-pulse text-xs">loading…</span>}
+                          {lpInr != null ? fmtRs(lpInr) : <span className="muted animate-pulse text-xs">loading…</span>}
                         </td>
                         <td className="py-3 text-right font-mono t2">{fmtRs(invested)}</td>
                         <td className="py-3 text-right font-mono t1">{mktVal != null ? fmtRs(mktVal) : "—"}</td>

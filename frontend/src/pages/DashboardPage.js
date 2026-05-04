@@ -4,7 +4,7 @@ import useAuthStore from "../store/authStore";
 
 const TOOLS = [
   { to: "/app/market",     icon: "↗", title: "Markets",          desc: "Live charts for stocks, crypto, forex and indices.",       tag: "Live",    tagStyle: { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" } },
-  { to: "/app/demo",       icon: "◷", title: "Paper Trading",    desc: "Practice with $10,000 virtual money at live prices.",      tag: "Free",    tagStyle: { bg: "#f7f7f7", color: "#6b6b6b", border: "#e2e2e2" } },
+  { to: "/app/demo",       icon: "◷", title: "Paper Trading",    desc: "Practice with ₹10,00,000 virtual money at live prices.",      tag: "Free",    tagStyle: { bg: "#f7f7f7", color: "#6b6b6b", border: "#e2e2e2" } },
   { to: "/app/prediction", icon: "◎", title: "AI Prediction",    desc: "LSTM & GRU models predict next-day price direction.",      tag: "AI",      tagStyle: { bg: "#0a0a0a", color: "#fff",    border: "#0a0a0a" } },
   { to: "/app/signals",    icon: "⚡", title: "Buy/Sell Signals", desc: "RSI, MACD, EMA and Bollinger Bands + deep learning.",      tag: "AI",      tagStyle: { bg: "#0a0a0a", color: "#fff",    border: "#0a0a0a" } },
   { to: "/app/patterns",   icon: "◈", title: "Pattern Scanner",  desc: "CNN spots Doji, Hammer, Engulfing and more patterns.",     tag: "AI",      tagStyle: { bg: "#0a0a0a", color: "#fff",    border: "#0a0a0a" } },

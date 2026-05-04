@@ -116,7 +116,8 @@ const useDemoStore = create((set, get) => ({
     const prices = { ...get().livePrices };
     results.forEach((r, i) => {
       if (r.status === "fulfilled" && r.value.data?.price) {
-        prices[syms[i]] = toInrPrice(r.value.data.price, syms[i], usdInr);
+        // Store raw price (same as API) — frontend converts to INR for display
+        prices[syms[i]] = r.value.data.price;
       }
     });
 
@@ -129,11 +130,10 @@ const useDemoStore = create((set, get) => ({
 
     // Profit protection — fetch signals for profit positions
     const profitSyms = syms.filter(sym => {
-      const lp = prices[sym];
-      const h  = portfolio[sym];
-      if (!lp || !h?.avg_price) return false;
-      const avg = toInrPrice(h.avg_price, sym, usdInr);
-      return lp > avg;
+      const rawLp = prices[sym];
+      const h     = portfolio[sym];
+      if (!rawLp || !h?.avg_price) return false;
+      return rawLp > h.avg_price; // compare in same raw currency
     });
 
     const signalResults = await Promise.allSettled(
@@ -153,11 +153,13 @@ const useDemoStore = create((set, get) => ({
     });
 
     Object.entries(portfolio).forEach(([sym, h]) => {
-      const lp  = prices[sym];
-      const avg = toInrPrice(h.avg_price, sym, usdInr);
-      if (!lp || !avg) return;
-      const pct = ((lp - avg) / avg) * 100;
-      const pnl = (lp - avg) * h.qty;
+      const rawLp = prices[sym];
+      const avg   = h.avg_price; // raw price stored by backend
+      if (!rawLp || !avg) return;
+      const pct = ((rawLp - avg) / avg) * 100;
+      const pnlRaw = (rawLp - avg) * h.qty;
+      // Convert P&L to INR for display in alerts
+      const pnlInr = INR_SYMBOLS.has(sym) ? pnlRaw : pnlRaw * usdInr;
 
       // Loss alerts
       let level = null;
@@ -169,11 +171,11 @@ const useDemoStore = create((set, get) => ({
         const key = `${sym}_${level}`;
         if (!dismissed.has(key)) {
           const LABELS = {
-            critical: { title: `🚨 Critical Loss — ${sym}`, action: "Sell Now", msg: `Down ${Math.abs(pct).toFixed(2)}% · Loss ₹${Math.abs(pnl).toFixed(0)} · Sell immediately.` },
-            danger:   { title: `⚠️ Sell Alert — ${sym}`,    action: "Sell Now", msg: `Down ${Math.abs(pct).toFixed(2)}% · Loss ₹${Math.abs(pnl).toFixed(0)} · Position moving against you.` },
-            warn:     { title: `🟡 Watch Out — ${sym}`,     action: "Review",   msg: `Down ${Math.abs(pct).toFixed(2)}% · Loss ₹${Math.abs(pnl).toFixed(0)} · Monitor closely.` },
+            critical: { title: `🚨 Critical Loss — ${sym}`, action: "Sell Now", msg: `Down ${Math.abs(pct).toFixed(2)}% · Loss ₹${Math.abs(pnlInr).toFixed(0)} · Sell immediately.` },
+            danger:   { title: `⚠️ Sell Alert — ${sym}`,    action: "Sell Now", msg: `Down ${Math.abs(pct).toFixed(2)}% · Loss ₹${Math.abs(pnlInr).toFixed(0)} · Position moving against you.` },
+            warn:     { title: `🟡 Watch Out — ${sym}`,     action: "Review",   msg: `Down ${Math.abs(pct).toFixed(2)}% · Loss ₹${Math.abs(pnlInr).toFixed(0)} · Monitor closely.` },
           };
-          newAlerts.push({ sym, pct, pnl, level, key, ...LABELS[level] });
+          newAlerts.push({ sym, pct, pnl: pnlInr, level, key, ...LABELS[level] });
         }
       }
 
@@ -182,10 +184,10 @@ const useDemoStore = create((set, get) => ({
         const key = `${sym}_profit_protect`;
         if (!dismissed.has(key)) {
           newAlerts.push({
-            sym, pct, pnl, level: "profit_protect", key,
+            sym, pct, pnl: pnlInr, level: "profit_protect", key,
             title:  `💡 Lock Profit — ${sym}`,
             action: "Sell & Lock Profit",
-            msg:    `Up +${pct.toFixed(2)}% (+₹${pnl.toFixed(0)}) · AI detects bearish reversal · Consider selling to lock profit.`,
+            msg:    `Up +${pct.toFixed(2)}% (+₹${pnlInr.toFixed(0)}) · AI detects bearish reversal · Consider selling to lock profit.`,
           });
         }
       }

@@ -36,11 +36,11 @@ export default function TradeCard({ symbol, signal, price, confidence }) {
 
   const handleBuy = () => {
     const r = buy(symbol, p, Number(qty));
-    r.error ? flash(r.error, false) : flash(`✓ Bought ${qty} × ${symbol} @ $${fmt(p)}`);
+    r.error ? flash(r.error, false) : flash(`✓ Bought ${qty} × ${symbol} @ ₹${fmt(p)}`);
   };
   const handleSell = () => {
     const r = sell(symbol, p, Number(qty));
-    r.error ? flash(r.error, false) : flash(`✓ Sold ${qty} × ${symbol} @ $${fmt(p)}`);
+    r.error ? flash(r.error, false) : flash(`✓ Sold ${qty} × ${symbol} @ ₹${fmt(p)}`);
   };
 
   return (
@@ -56,7 +56,7 @@ export default function TradeCard({ symbol, signal, price, confidence }) {
           <p className="muted text-xs mt-0.5">AI-generated trade plan · Demo account only</p>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-black t1">${fmt(p, 4)}</p>
+          <p className="text-2xl font-black t1">₹{fmt(p, 4)}</p>
           <p className="muted text-xs">Current Price</p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function TradeCard({ symbol, signal, price, confidence }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
         {[
           { label: "Entry",    value: fmt(p, 4),       color: "t1",   sub: "Now" },
-          { label: "Stop Loss",value: fmt(stopLoss, 4),color: "down", sub: `Risk $${fmt(riskPerShare, 4)}/share` },
+          { label: "Stop Loss",value: fmt(stopLoss, 4),color: "down", sub: `Risk ₹${fmt(riskPerShare, 4)}/share` },
           { label: "Target 1", value: fmt(target1, 4), color: "up",   sub: `R/R ${rr1}x` },
           { label: "Target 2", value: fmt(target2, 4), color: "up",   sub: `R/R ${rr2}x` },
         ].map(({ label, value, color, sub }) => (
@@ -82,7 +82,7 @@ export default function TradeCard({ symbol, signal, price, confidence }) {
         <p className="text-xs font-semibold t2 mb-3">Position Sizing Calculator</p>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="text-[10px] muted block mb-1">Capital ($)</label>
+            <label className="text-[10px] muted block mb-1">Capital (₹)</label>
             <input type="number" className="input text-xs py-1.5" value={capital}
               onChange={e => setCapital(Number(e.target.value))} />
           </div>
@@ -99,9 +99,9 @@ export default function TradeCard({ symbol, signal, price, confidence }) {
         </div>
         <div className="grid grid-cols-3 gap-2 mt-3">
           {[
-            ["Total Cost",  `$${totalCost}`],
-            ["Max Loss",    `-$${maxLoss}`],
-            ["Max Gain T1", `+$${maxGain1}`],
+            ["Total Cost",  `₹${totalCost}`],
+            ["Max Loss",    `-₹${maxLoss}`],
+            ["Max Gain T1", `+₹${maxGain1}`],
           ].map(([l, v]) => (
             <div key={l} className="text-center">
               <p className="text-[10px] muted">{l}</p>
@@ -114,9 +114,9 @@ export default function TradeCard({ symbol, signal, price, confidence }) {
       {/* Holding info */}
       {holding && (
         <div className="panel mb-3 text-xs flex items-center justify-between">
-          <span className="muted">Current position: <span className="t1 font-semibold">{holding.qty} shares @ ${fmt(holding.avgPrice, 4)}</span></span>
+          <span className="muted">Current position: <span className="t1 font-semibold">{holding.qty} shares @ ₹{fmt(holding.avgPrice, 4)}</span></span>
           <span className={`font-bold ${(p - holding.avgPrice) >= 0 ? "up" : "down"}`}>
-            P&L: {(p - holding.avgPrice) >= 0 ? "+" : ""}${fmt((p - holding.avgPrice) * holding.qty)}
+            P&L: {(p - holding.avgPrice) >= 0 ? "+" : ""}₹{fmt((p - holding.avgPrice) * holding.qty)}
           </span>
         </div>
       )}
@@ -130,7 +130,7 @@ export default function TradeCard({ symbol, signal, price, confidence }) {
       )}
       <div className="grid grid-cols-2 gap-2">
         <button onClick={handleBuy} className="btn-buy py-2.5 text-sm">
-          Buy {qty} shares · ${totalCost}
+          Buy {qty} shares · ₹{totalCost}
         </button>
         <button onClick={handleSell} disabled={!holding} className="btn-sell py-2.5 text-sm disabled:opacity-40">
           Sell {qty} shares

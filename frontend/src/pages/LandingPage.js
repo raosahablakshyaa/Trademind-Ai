@@ -8,7 +8,7 @@ const FEATURES = [
   { icon: "⚡", title: "Buy / Sell Signals",   desc: "RSI, MACD, EMA and Bollinger Bands combined with deep learning for cleaner signals.", tag: "Free" },
   { icon: "◈", title: "Pattern Recognition",  desc: "CNN model that spots Doji, Hammer, Engulfing and other candlestick patterns.", tag: "Free" },
   { icon: "◻", title: "Risk Analyzer",        desc: "Calculate position size, stop-loss levels and risk-reward before every trade.", tag: "Free" },
-  { icon: "◷", title: "Paper Trading",         desc: "Practice with $10,000 virtual money. No real money, real market prices.", tag: "Free" },
+  { icon: "◷", title: "Paper Trading",         desc: "Practice with ₹10,00,000 virtual money. No real money, real market prices.", tag: "Free" },
   { icon: "◑", title: "Trade Journal",         desc: "Log every trade with notes, emotion and strategy. Review what works.", tag: "Premium" },
   { icon: "◐", title: "Psychology Analyzer",  desc: "Spot patterns like fear-selling, revenge trading and overconfidence in your history.", tag: "Premium" },
   { icon: "▦", title: "Strategy Analyzer",    desc: "Compare your scalping, swing and intraday performance side by side.", tag: "Premium" },

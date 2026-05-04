@@ -14,7 +14,7 @@ const STRATEGY_META = {
 
 const fmt = (v) => {
   const n = Number(v);
-  return (n >= 0 ? "+" : "") + "$" + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n >= 0 ? "+" : "") + "₹" + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const CustomTooltip = ({ active, payload }) => {
@@ -119,7 +119,7 @@ export default function StrategyPage() {
                     <YAxis
                       tick={{ fill: "#9a9a9a", fontSize: 11, fontFamily: "Inter" }}
                       axisLine={false} tickLine={false}
-                      tickFormatter={v => `$${v}`}
+                      tickFormatter={v => `₹${v}`}
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--bg2)" }} />
                     <ReferenceLine y={0} stroke="#e2e2e2" />

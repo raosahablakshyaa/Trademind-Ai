@@ -55,7 +55,7 @@ async def demo_buy(body: OrderRequest, user=Depends(get_current_user)):
 
     cost = round(body.price * body.qty, 4)
     if cost > acc["balance"]:
-        raise HTTPException(400, f"Insufficient balance. Need ${cost:.2f}, have ${acc['balance']:.2f}")
+        raise HTTPException(400, f"Insufficient balance. Need ₹{cost:.2f}, have ₹{acc['balance']:.2f}")
 
     portfolio = dict(acc["portfolio"])
     sym = body.symbol.upper()
@@ -181,17 +181,18 @@ async def demo_reset(user=Depends(get_current_user)):
 
 @router.post("/recalculate")
 async def recalculate(user=Depends(get_current_user)):
-    """Rebuild portfolio avg_price and invested from trade history."""
+    """Rebuild portfolio avg_price from trade history (raw prices only)."""
     db = get_db()
     user_id = str(user["_id"])
     acc = await _get_account(db, user_id)
 
     trades = sorted(acc.get("trades", []), key=lambda t: t.get("time", ""))
     portfolio = {}
+    realized_pnl = 0.0
 
     for t in trades:
-        sym = t["symbol"]
-        qty = t["qty"]
+        sym   = t["symbol"]
+        qty   = t["qty"]
         price = t["price"]
 
         if t["type"] == "BUY":
@@ -202,18 +203,28 @@ async def recalculate(user=Depends(get_current_user)):
                 portfolio[sym] = {"qty": new_qty, "avg_price": round(new_avg, 4), "invested": round(new_avg * new_qty, 4)}
             else:
                 portfolio[sym] = {"qty": qty, "avg_price": round(price, 4), "invested": round(price * qty, 4)}
+        elif t["type"] == "SELL" and sym in portfolio:
+            avg     = portfolio[sym]["avg_price"]
+            pnl     = round((price - avg) * qty, 4)
+            realized_pnl += pnl
+            new_qty = portfolio[sym]["qty"] - qty
+            if new_qty <= 0:
+                del portfolio[sym]
+            else:
+                portfolio[sym] = {"qty": new_qty, "avg_price": avg, "invested": round(avg * new_qty, 4)}
+
+    # Recalculate balance from starting balance + all trade cash flows
+    balance = STARTING_BALANCE
+    for t in trades:
+        cost = t["price"] * t["qty"]
+        if t["type"] == "BUY":
+            balance -= cost
         elif t["type"] == "SELL":
-            if sym in portfolio:
-                new_qty = portfolio[sym]["qty"] - qty
-                if new_qty <= 0:
-                    del portfolio[sym]
-                else:
-                    avg = portfolio[sym]["avg_price"]
-                    portfolio[sym] = {"qty": new_qty, "avg_price": avg, "invested": round(avg * new_qty, 4)}
+            balance += cost
 
     await db.demo_accounts.update_one(
         {"user_id": user_id},
-        {"$set": {"portfolio": portfolio}}
+        {"$set": {"portfolio": portfolio, "balance": round(balance, 4), "realized_pnl": round(realized_pnl, 4)}}
     )
     acc = await _get_account(db, user_id)
     return _serialize(acc)

@@ -105,9 +105,9 @@ export default function JournalPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Total Trades", value: trades.length, sub: `${wins}W · ${losses}L`, color: "#0a0a0a" },
-            { label: "Total P&L",    value: `${totalPnl >= 0 ? "+" : ""}$${fmt(Math.abs(totalPnl))}`, sub: "All time", color: totalPnl >= 0 ? "#16a34a" : "#dc2626" },
+            { label: "Total P&L",    value: `${totalPnl >= 0 ? "+" : ""}₹${fmt(Math.abs(totalPnl))}`, sub: "All time", color: totalPnl >= 0 ? "#16a34a" : "#dc2626" },
             { label: "Win Rate",     value: `${winRate}%`, sub: `${wins} winning trades`, color: winRate >= 50 ? "#16a34a" : "#dc2626" },
-            { label: "Avg P&L",      value: `${avgPnl >= 0 ? "+" : ""}$${fmt(Math.abs(avgPnl))}`, sub: "Per trade", color: avgPnl >= 0 ? "#16a34a" : "#dc2626" },
+            { label: "Avg P&L",      value: `${avgPnl >= 0 ? "+" : ""}₹${fmt(Math.abs(avgPnl))}`, sub: "Per trade", color: avgPnl >= 0 ? "#16a34a" : "#dc2626" },
           ].map(({ label, value, sub, color }) => (
             <div key={label} className="card text-center" style={{ padding: "20px 16px" }}>
               <p className="text-2xl font-black mb-1" style={{ color, fontFamily: "'JetBrains Mono', monospace" }}>{value}</p>
@@ -255,7 +255,7 @@ export default function JournalPage() {
                       <span className="text-xs">{EMOTION_EMOJI[t.emotional_state]} {t.emotional_state}</span>
                     </div>
                     <p className="text-sm mt-0.5" style={{ color: "#6b6b6b" }}>
-                      Entry ${t.entry_price} → Exit ${t.exit_price} · {t.quantity} shares
+                      Entry ₹{t.entry_price} → Exit ₹{t.exit_price} · {t.quantity} shares
                       {t.reason && <span> · {t.reason}</span>}
                     </p>
                     {t.notes && <p className="text-xs mt-0.5 italic" style={{ color: "#9a9a9a" }}>{t.notes}</p>}
@@ -265,7 +265,7 @@ export default function JournalPage() {
                 <div className="flex items-center gap-4 shrink-0">
                   <div className="text-right">
                     <p className="text-xl font-black" style={{ color: t.pnl >= 0 ? "#16a34a" : "#dc2626", fontFamily: "'JetBrains Mono', monospace" }}>
-                      {t.pnl >= 0 ? "+" : ""}${fmt(Math.abs(t.pnl))}
+                      {t.pnl >= 0 ? "+" : ""}₹{fmt(Math.abs(t.pnl))}
                     </p>
                     <p className="text-xs" style={{ color: "#9a9a9a" }}>
                       {new Date(t.entry_date).toLocaleDateString()}

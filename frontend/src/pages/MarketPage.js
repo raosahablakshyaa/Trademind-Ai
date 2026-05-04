@@ -116,9 +116,9 @@ function analyzeTradeRisk(quote, report) {
   else                 { factors.push({ w: 20, score: 2,  ok: false, label: `R/R ${rr}x`,  text: `Poor R/R ratio of ${rr}x — risk outweighs potential reward` }); }
 
   // 4. Price vs Pivot (weight: 15)
-  if (p > pivot * 1.005)      { factors.push({ w: 15, score: 15, ok: true,  label: "Above pivot",  text: `Price $${p.toFixed(2)} is above pivot $${pivot.toFixed(2)} — buyers in control` }); }
-  else if (p > pivot * 0.995) { factors.push({ w: 15, score: 8,  ok: null,  label: "At pivot",     text: `Price is near pivot $${pivot.toFixed(2)} — direction unclear` }); }
-  else                        { factors.push({ w: 15, score: 0,  ok: false, label: "Below pivot",  text: `Price $${p.toFixed(2)} is below pivot $${pivot.toFixed(2)} — sellers in control` }); }
+  if (p > pivot * 1.005)      { factors.push({ w: 15, score: 15, ok: true,  label: "Above pivot",  text: `Price ₹${p.toFixed(2)} is above pivot ₹${pivot.toFixed(2)} — buyers in control` }); }
+  else if (p > pivot * 0.995) { factors.push({ w: 15, score: 8,  ok: null,  label: "At pivot",     text: `Price is near pivot ₹${pivot.toFixed(2)} — direction unclear` }); }
+  else                        { factors.push({ w: 15, score: 0,  ok: false, label: "Below pivot",  text: `Price ₹${p.toFixed(2)} is below pivot ₹${pivot.toFixed(2)} — sellers in control` }); }
 
   // 5. Volatility / ATR (weight: 10)
   if (atrPct <= 1.5)   { factors.push({ w: 10, score: 10, ok: true,  label: "Low volatility",    text: `Low volatility (${atrPct.toFixed(1)}% ATR) — stable price action` }); }
@@ -652,12 +652,12 @@ export default function MarketPage() {
   const handleBuy = async () => {
     if (!quote.price) return;
     const r = await buy(selected, quote.price, Number(orderQty));
-    r.error ? flash(r.error, false) : flash(`✓ Bought ${orderQty} × ${selected} @ $${fmt(quote.price)}`);
+    r.error ? flash(r.error, false) : flash(`✓ Bought ${orderQty} × ${selected} @ ${fmtInr(quote.price, selected)}`);
   };
   const handleSell = async () => {
     if (!quote.price) return;
     const r = await sell(selected, quote.price, Number(orderQty));
-    r.error ? flash(r.error, false) : flash(`✓ Sold ${orderQty} × ${selected} @ $${fmt(quote.price)} · P&L: ${r.pnl >= 0 ? "+" : ""}$${fmt(r.pnl)}`);
+    r.error ? flash(r.error, false) : flash(`✓ Sold ${orderQty} × ${selected} @ ${fmtInr(quote.price, selected)} · P&L: ${r.pnl >= 0 ? "+" : ""}${fmtInr(Math.abs(r.pnl), selected)}`);
   };
 
   return (
@@ -829,7 +829,7 @@ export default function MarketPage() {
               >
                 <span className="text-xs font-medium" style={{ color: "var(--muted)" }}>Available Balance</span>
                 <span className="text-sm font-black" style={{ color: demoBalance != null ? (demoBalance > 0 ? "var(--green)" : "var(--red)") : "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>
-                  {demoBalance != null ? `$${demoBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                  {demoBalance != null ? `₹${demoBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
                 </span>
               </div>
               <div>
@@ -840,22 +840,22 @@ export default function MarketPage() {
               {quote.price && (
                 <div className="panel flex justify-between text-sm">
                   <span className="muted">Price</span>
-                  <span className="font-mono font-bold t1">${fmt(quote.price)}</span>
+                  <span className="font-mono font-bold t1">{fmtInr(quote.price, selected)}</span>
                 </div>
               )}
               {quote.price && (
                 <div className="panel flex justify-between text-sm">
                   <span className="muted">Total</span>
-                  <span className="font-mono font-bold t1">${fmt(quote.price * orderQty)}</span>
+                  <span className="font-mono font-bold t1">{fmtInr(quote.price * orderQty, selected)}</span>
                 </div>
               )}
               {holding && (
                 <div className="panel text-xs space-y-1">
                   <p className="muted">Your Position</p>
-                  <p className="t1 font-semibold">{holding.qty} shares · avg ${fmt(holding.avg_price)}</p>
+                  <p className="t1 font-semibold">{holding.qty} shares · avg {fmtInr(holding.avg_price, selected)}</p>
                   {quote.price && (
                     <p className={`font-bold ${(quote.price-holding.avg_price)>=0?"up":"down"}`}>
-                      P&L: {(quote.price-holding.avg_price)>=0?"+":""}${fmt((quote.price-holding.avg_price)*holding.qty)}
+                      P&L: {(quote.price-holding.avg_price)>=0?"+":""}{fmtInr(Math.abs((quote.price-holding.avg_price)*holding.qty), selected)}
                     </p>
                   )}
                 </div>
